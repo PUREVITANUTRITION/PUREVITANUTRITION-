@@ -204,7 +204,7 @@ function closeModal(){$('modal').classList.remove('show')}
 async function unlockReports(){const pass=prompt('Mot de passe administrateur :');if(!pass)return;const u=(await db.auth.getUser()).data.user;if(!u)return;if(pass===($('password').value||'admin')){renderReports();$('reportLock').classList.add('hidden');$('reportContent').classList.remove('hidden')}else alert('Mot de passe incorrect.')}
 function renderReports(){const ca=sales.reduce((a,s)=>a+Number(s.chiffre_affaires||0),0),pr=sales.reduce((a,s)=>a+Number(s.benefice||0),0);$('rCA').textContent=money(ca);$('rProfit').textContent=money(pr);$('rSales').textContent=sales.length;const map={};sales.forEach(s=>{const p=products.find(x=>x.id===s.produit_id),k=s.produit_id;if(!map[k])map[k]={name:p?.nom||'Produit',ca:0,profit:0};map[k].ca+=Number(s.chiffre_affaires||0);map[k].profit+=Number(s.benefice||0)});$('reportBody').innerHTML=Object.values(map).map(x=>`<tr><td>${esc(x.name)}</td><td>${money(x.ca)}</td><td>${money(x.profit)}</td><td>${x.ca?((x.profit/x.ca)*100).toFixed(1):0}%</td></tr>`).join('')||'<tr><td colspan="4">Aucune vente.</td></tr>'}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-db.auth.getSession().then(({data})=>data.session?boot():null);
+db.auth.getSession().then(({ data }) => data.session ? boot() : null);
 </script>
 </body>
 </html>
