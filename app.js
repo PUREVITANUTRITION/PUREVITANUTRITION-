@@ -1,6 +1,313 @@
-const SUPABASE_URL='https://uhklwxoidufeozbjkjwz.supabase.co';const SUPABASE_KEY='sb_publishable_Q7oY5TVHmBkpX8YAQRN4nQ_8ITk3e5r';;const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);let S={p:[],c:[],f:[],v:[],m:[]};const $=x=>document.getElementById(x);const money=n=>Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2})+' DH';const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-async function boot(){const {data:{user}}=await db.auth.getUser();if(!user)return;login.classList.add('hidden');app.classList.remove('hidden');$('user').textContent=user.email||'';await load();page('dashboard')}async function load(){const [p,c,f,v,m]=await Promise.all([db.from('produits').select('*').order('nom'),db.from('clients').select('*').order('nom'),db.from('fournisseurs').select('*').order('nom'),db.from('ventes').select('*').order('created_at',{ascending:false}).limit(200),db.from('mouvements_stock').select('*').order('created_at',{ascending:false}).limit(200)]);S.p=p.data||[];S.c=c.data||[];S.f=f.data||[];S.v=v.data||[];S.m=m.data||[]}
-$('loginBtn').onclick=async()=>{msg.textContent='Connexion…';const {error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});msg.textContent=error?error.message:'';if(!error)boot()};$('logout').onclick=async()=>{await db.auth.signOut();location.reload()};$('nav').onclick=e=>{const b=e.target.closest('button[data-p]');if(!b)return;document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');page(b.dataset.p)};
-function page(p){const T={dashboard:'Tableau de bord',products:'Produits & stock',pos:'Caisse / ventes',clients:'Clients',suppliers:'Fournisseurs & achats',finance:'Finance',documents:'Documents',reports:'Rapports',users:'Utilisateurs',settings:'Paramètres'};$('title').textContent=T[p];$('content').innerHTML=(V[p]||V.dashboard)()}
-const V={dashboard:()=>{let low=S.p.filter(x=>x.stock<=x.stock_minimum);return `<div class=cards><div class=card><span class=muted>Produits</span><div class=num>${S.p.length}</div></div><div class=card><span class=muted>Entrées</span><div class=num>${S.m.filter(x=>x.type==='entree').reduce((a,x)=>a+x.quantite,0)}</div></div><div class=card><span class=muted>Sorties</span><div class=num>${S.m.filter(x=>x.type==='sortie').reduce((a,x)=>a+x.quantite,0)}</div></div><div class=card><span class=muted>Alertes</span><div class=num>${low.length}</div></div></div><div class=grid><div class=card><h3>Activité récente</h3>${S.m.slice(0,8).map(x=>`<p>↕ ${x.type} — ${x.quantite} unité(s)</p>`).join('')||'<p class=muted>Aucune activité</p>'}</div><div class=card><h3>Alertes</h3>${low.map(x=>`<p style="color:#b42318">⚠️ ${esc(x.nom)} — stock ${x.stock}</p>`).join('')||'<p class=muted>Aucune alerte</p>'}</div></div>`},products:()=>`<div class=card><h3>📦 Produits</h3><table class=table><tr><th>Produit</th><th>Référence</th><th>Stock</th><th>Min.</th><th>Prix vente</th></tr>${S.p.map(x=>`<tr><td>${esc(x.nom)}</td><td>${esc(x.reference||'—')}</td><td>${x.stock}</td><td>${x.stock_minimum}</td><td>${money(x.prix_vente)}</td></tr>`).join('')||'<tr><td colspan=5>Aucun produit</td></tr>'}</table></div>`,pos:()=>`<div class=grid><div class=card><h3>🛒 Caisse / POS</h3><div class=features><div class=feature>Recherche rapide</div><div class=feature>Code-barres</div><div class=feature>Remises</div><div class=feature>TVA</div><div class=feature>Paiements</div><div class=feature>Tickets</div></div></div><div class=card><h3>Panier</h3><p class=muted>Prêt pour les ventes.</p></div></div>`,clients:()=>`<div class=card><h3>👥 Clients</h3><p class=muted>Fiches, achats, crédits et paiements.</p><table class=table><tr><th>Nom</th><th>Téléphone</th><th>Email</th></tr>${S.c.map(x=>`<tr><td>${esc(x.nom)}</td><td>${esc(x.telephone||'—')}</td><td>${esc(x.email||'—')}</td></tr>`).join('')||'<tr><td colspan=3>Aucun client</td></tr>'}</table></div>`,suppliers:()=>`<div class=card><h3>🚚 Fournisseurs & achats</h3><p class=muted>Bons de commande, réceptions, factures et dettes.</p><table class=table><tr><th>Nom</th><th>Téléphone</th><th>Email</th></tr>${S.f.map(x=>`<tr><td>${esc(x.nom)}</td><td>${esc(x.telephone||'—')}</td><td>${esc(x.email||'—')}</td></tr>`).join('')||'<tr><td colspan=3>Aucun fournisseur</td></tr>'}</table></div>`,finance:()=>`<div class=cards><div class=card><span class=muted>Chiffre d'affaires</span><div class=num>🔒</div></div><div class=card><span class=muted>Bénéfice</span><div class=num>🔒</div></div><div class=card><span class=muted>Créances</span><div class=num>🔒</div></div><div class=card><span class=muted>Dettes</span><div class=num>🔒</div></div></div>`,documents:()=>`<div class=card><h3>🧾 Documents</h3><div class=features>${['Devis','Bons de commande','Bons de livraison','Factures','Tickets','Avoirs'].map(x=>`<div class=feature><b>${x}</b><p class=muted>Impression et PDF</p></div>`).join('')}</div></div>`,reports:()=>`<div class=card><h3>📈 Rapports</h3><p class=muted>Accès administrateur : CA, bénéfice, marges et statistiques.</p><button onclick="alert('Module protégé par le rôle Administrateur.')">Déverrouiller</button></div>`,users:()=>`<div class=card><h3>👤 Utilisateurs</h3><div class=features>${['Administrateur','Caissier','Gestionnaire de stock','Comptable'].map(x=>`<div class=feature><b>${x}</b><p class=muted>Permissions spécifiques</p></div>`).join('')}</div></div>`,settings:()=>`<div class=card><h3>⚙️ Paramètres</h3><div class=features>${['Boutique','TVA','Modes de paiement','Magasins / dépôts','Sauvegarde','Journal des actions'].map(x=>`<div class=feature>${x}</div>`).join('')}</div></div>`};
-db.auth.getSession().then(({data})=>{if(data.session)boot()});
+const SUPABASE_URL = "https://uhklwxoidufeozbjkjwz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_Q7oY5TVHmBkpX8YAQRN4nQ_8ITk3e5r";
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const login = document.getElementById("login");
+const app = document.getElementById("app");
+
+async function boot() {
+  const { data } = await db.auth.getSession();
+
+  if (!data.session) {
+    login?.classList.remove("hidden");
+    app?.classList.add("hidden");
+    return;
+  }
+
+  login?.classList.add("hidden");
+  app?.classList.remove("hidden");
+  page("dashboard");
+}
+
+document.getElementById("loginBtn")?.addEventListener("click", async () => {
+  const email = document.getElementById("email")?.value.trim();
+  const password = document.getElementById("password")?.value;
+
+  const { error } = await db.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    alert("Connexion impossible : " + error.message);
+    return;
+  }
+
+  boot();
+});
+
+async function logout() {
+  await db.auth.signOut();
+  location.reload();
+}
+
+window.logout = logout;
+
+window.page = async function(section) {
+  const content = document.getElementById("content");
+  if (!content) return;
+
+  if (section === "dashboard") {
+    const { data: produits = [] } =
+      await db.from("produits").select("*");
+
+    const { data: mouvements = [] } =
+      await db.from("mouvements_stock").select("*");
+
+    const entrees = mouvements.filter(x => x.type === "entree").length;
+    const sorties = mouvements.filter(x => x.type === "sortie").length;
+    const alertes = produits.filter(
+      x => Number(x.stock) <= Number(x.stock_minimum)
+    ).length;
+
+    content.innerHTML = `
+      <h1>Tableau de bord</h1>
+      <p>VIVEZ EN PLEIN SANTÉ</p>
+
+      <div class="cards">
+        <div class="card"><span>Produits</span><strong>${produits.length}</strong></div>
+        <div class="card"><span>Entrées</span><strong>${entrees}</strong></div>
+        <div class="card"><span>Sorties</span><strong>${sorties}</strong></div>
+        <div class="card"><span>Alertes</span><strong>${alertes}</strong></div>
+      </div>
+
+      <div class="panel">
+        <h2>Bienvenue dans PURE VITA</h2>
+        <p>Votre gestion commerciale est prête.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (section === "products") {
+    await afficherProduits();
+    return;
+  }
+
+  if (section === "pos") {
+    content.innerHTML = `
+      <h1>Caisse / ventes</h1>
+      <div class="panel">
+        <h2>Nouvelle vente</h2>
+        <p>La caisse sera disponible ici.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (section === "clients") {
+    content.innerHTML = `
+      <h1>Clients</h1>
+      <div class="panel">
+        <p>Gestion des clients.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (section === "suppliers") {
+    content.innerHTML = `
+      <h1>Fournisseurs & achats</h1>
+      <div class="panel">
+        <p>Gestion des fournisseurs et achats.</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (section === "finance") {
+    content.innerHTML = `
+      <h1>Finance 🔒</h1>
+      <div class="panel">
+        <p>Les informations financières sont protégées.</p>
+      </div>
+    `;
+    return;
+  }
+
+  content.innerHTML = `
+    <h1>${section}</h1>
+    <div class="panel">
+      <p>Module en préparation.</p>
+    </div>
+  `;
+};
+
+async function afficherProduits() {
+  const content = document.getElementById("content");
+
+  const { data: produits, error } =
+    await db.from("produits").select("*").order("id", { ascending: false });
+
+  if (error) {
+    content.innerHTML = `
+      <h1>Produits & stock</h1>
+      <div class="panel">Erreur : ${error.message}</div>
+    `;
+    return;
+  }
+
+  content.innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1>Produits & stock</h1>
+        <p>Gestion de votre stock PURE VITA</p>
+      </div>
+      <button class="btn-primary" onclick="ouvrirProduit()">+ Ajouter un produit</button>
+    </div>
+
+    <div class="panel">
+      <input
+        id="rechercheProduit"
+        class="search"
+        placeholder="🔎 Rechercher un produit..."
+        oninput="filtrerProduits()"
+      >
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>Référence</th>
+              <th>Stock</th>
+              <th>Min.</th>
+              <th>Prix vente</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="listeProduits">
+            ${produits.length ? produits.map(p => `
+              <tr>
+                <td>${p.nom}</td>
+                <td>${p.reference || "-"}</td>
+                <td>${p.stock}</td>
+                <td>${p.stock_minimum}</td>
+                <td>${Number(p.prix_vente).toFixed(2)} DH</td>
+                <td>
+                  <button onclick="modifierProduit(${p.id})">✏️</button>
+                  <button onclick="supprimerProduit(${p.id})">🗑️</button>
+                </td>
+              </tr>
+            `).join("") : `
+              <tr>
+                <td colspan="6">Aucun produit</td>
+              </tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  window.produitsCache = produits;
+}
+
+window.ouvrirProduit = function() {
+  const content = document.getElementById("content");
+
+  content.insertAdjacentHTML("beforeend", `
+    <div class="modal" id="modalProduit">
+      <div class="modal-box">
+        <h2>Ajouter un produit</h2>
+
+        <input id="p_nom" placeholder="Nom du produit">
+        <input id="p_reference" placeholder="Référence / SKU">
+        <input id="p_categorie" placeholder="Catégorie">
+        <input id="p_stock" type="number" placeholder="Stock">
+        <input id="p_min" type="number" placeholder="Stock minimum">
+        <input id="p_achat" type="number" step="0.01" placeholder="Prix achat">
+        <input id="p_vente" type="number" step="0.01" placeholder="Prix vente">
+
+        <div class="modal-actions">
+          <button onclick="fermerProduit()">Annuler</button>
+          <button class="btn-primary" onclick="enregistrerProduit()">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  `);
+};
+
+window.fermerProduit = function() {
+  document.getElementById("modalProduit")?.remove();
+};
+
+window.enregistrerProduit = async function() {
+  const produit = {
+    nom: document.getElementById("p_nom").value.trim(),
+    reference: document.getElementById("p_reference").value.trim(),
+    categorie: document.getElementById("p_categorie").value.trim(),
+    stock: Number(document.getElementById("p_stock").value || 0),
+    stock_minimum: Number(document.getElementById("p_min").value || 0),
+    prix_achat: Number(document.getElementById("p_achat").value || 0),
+    prix_vente: Number(document.getElementById("p_vente").value || 0)
+  };
+
+  if (!produit.nom) {
+    alert("Le nom du produit est obligatoire.");
+    return;
+  }
+
+  const { error } = await db.from("produits").insert(produit);
+
+  if (error) {
+    alert("Erreur : " + error.message);
+    return;
+  }
+
+  fermerProduit();
+  afficherProduits();
+};
+
+window.supprimerProduit = async function(id) {
+  if (!confirm("Supprimer ce produit ?")) return;
+
+  const { error } = await db
+    .from("produits")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert("Erreur : " + error.message);
+    return;
+  }
+
+  afficherProduits();
+};
+
+window.modifierProduit = function(id) {
+  const produit = window.produitsCache?.find(p => p.id === id);
+
+  if (!produit) return;
+
+  ouvrirProduit();
+
+  setTimeout(() => {
+    document.getElementById("p_nom").value = produit.nom || "";
+    document.getElementById("p_reference").value = produit.reference || "";
+    document.getElementById("p_categorie").value = produit.categorie || "";
+    document.getElementById("p_stock").value = produit.stock || 0;
+    document.getElementById("p_min").value = produit.stock_minimum || 0;
+    document.getElementById("p_achat").value = produit.prix_achat || 0;
+    document.getElementById("p_vente").value = produit.prix_vente || 0;
+  }, 50);
+};
+
+window.filtrerProduits = function() {
+  const recherche =
+    document.getElementById("rechercheProduit")?.value.toLowerCase() || "";
+
+  document.querySelectorAll("#listeProduits tr").forEach(row => {
+    row.style.display =
+      row.textContent.toLowerCase().includes(recherche)
+        ? ""
+        : "none";
+  });
+};
+
+db.auth.onAuthStateChange(() => {
+  boot();
+});
+
+boot();
