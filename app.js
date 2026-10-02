@@ -317,4 +317,4 @@ document.querySelectorAll("#nav button[data-p]").forEach(button => {
   });
 });
 
-document.getElementById("logout")?.addEventListener("click", logout);
+document.getElementById("logout")?.addEventListener("click", logout);// navigation
