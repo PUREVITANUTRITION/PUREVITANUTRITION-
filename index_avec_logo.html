@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PUREVITANUTRITION — Gestion de stock</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--green:#1f6b4f;--green2:#2f8a68;--bg:#f4f7f5;--card:#fff;--text:#17352a;--muted:#6d7d75;--danger:#b42318;--warning:#a15c00;--border:#e3eae6}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:var(--green);color:white}button.secondary{background:#edf3ef;color:var(--green)}button.danger{background:#fff0ef;color:var(--danger)}
+.hidden{display:none!important}.login{min-height:100vh;display:grid;place-items:center;padding:20px}.login-card{width:min(430px,100%);background:#fff;border-radius:22px;padding:30px;box-shadow:0 15px 45px #17352a18}.brand{text-align:center}.brand-logo{width:min(210px,75%);height:auto;display:block;margin:0 auto 10px}.brand-mark{width:62px;height:62px;border-radius:18px;background:var(--green);color:#fff;display:grid;place-items:center;margin:0 auto 12px;font-size:25px;font-weight:800}.brand h1{margin:0;font-size:25px}.brand p{color:var(--muted);margin:6px 0 24px}.field{margin:12px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}.field input,.field select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}.login-card .primary{width:100%;margin-top:8px}.msg{margin-top:12px;font-size:13px;color:var(--danger)}
+.app{display:none;min-height:100vh}.sidebar{position:fixed;left:0;top:0;bottom:0;width:235px;background:#123b2d;color:#fff;padding:22px 14px}.side-brand{display:flex;align-items:center;gap:10px;font-weight:800;margin:4px 8px 28px}.side-logo{width:46px;height:46px;object-fit:contain;border-radius:10px;background:#fff;padding:3px}.side-mark{width:40px;height:40px;border-radius:12px;background:#fff;color:var(--green);display:grid;place-items:center}.nav button{width:100%;text-align:left;background:transparent;color:#dcece5;margin:3px 0}.nav button.active,.nav button:hover{background:#ffffff16}.logout{position:absolute;bottom:20px;left:14px;right:14px;background:#ffffff12}
+main{margin-left:235px;padding:26px;max-width:1500px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.topbar h2{margin:0}.topbar small{color:var(--muted)}.section{display:none}.section.active{display:block}.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(3,1fr)}.kpi,.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px}.kpi .num{font-size:30px;font-weight:800;margin-top:7px}.muted{color:var(--muted)}.two{grid-template-columns:1.4fr .9fr}.three{grid-template-columns:repeat(3,1fr)}.bar{height:12px;background:#edf2ef;border-radius:10px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--green);border-radius:10px}.alert{padding:11px 12px;border-radius:10px;background:#fff7e8;color:var(--warning);margin:7px 0;font-size:13px}.alert.danger{background:#fff0ef;color:var(--danger)}table{width:100%;border-collapse:collapse}th,td{padding:11px 8px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}th{color:var(--muted);font-size:12px}.table-wrap{overflow:auto}.actions{display:flex;gap:6px;flex-wrap:wrap}.pill{display:inline-block;padding:5px 8px;border-radius:999px;background:#edf3ef;color:var(--green);font-size:12px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.toolbar input,.toolbar select{padding:10px;border:1px solid var(--border);border-radius:10px}.modal{position:fixed;inset:0;background:#0007;display:none;place-items:center;padding:20px;z-index:20}.modal.show{display:grid}.modal-box{background:#fff;width:min(620px,100%);max-height:90vh;overflow:auto;border-radius:18px;padding:22px}.modal-head{display:flex;justify-content:space-between;align-items:center}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.full{grid-column:1/-1}.report-lock{background:#fff;border:1px solid var(--border);border-radius:18px;padding:30px;text-align:center}.chart{height:190px;display:flex;align-items:end;gap:10px;padding:15px 5px}.col{flex:1;background:#dcebe4;border-radius:8px 8px 3px 3px;min-height:10px;position:relative}.col span{position:absolute;bottom:-24px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--muted)}.note{font-size:12px;color:var(--muted);margin-top:10px}
+@media(max-width:850px){.sidebar{position:static;width:auto;display:flex;overflow:auto;padding:10px}.side-brand{min-width:max-content;margin:0 12px}.nav{display:flex}.nav button{width:auto;white-space:nowrap}.logout{position:static;margin-left:auto;min-width:90px}.app main{margin-left:0;padding:15px}.kpis,.two,.three{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="login" class="login">
+  <div class="login-card">
+    <div class="brand"><img class="brand-logo" src="logo-pure-vita.png" alt="PURE VITA"><h1>PUREVITANUTRITION</h1><p>Gestion simple et professionnelle du stock</p></div>
+    <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email"></div>
+    <div class="field"><label>Mot de passe</label><input id="password" type="password" autocomplete="current-password"></div>
+    <button class="primary" onclick="login()">Se connecter</button>
+    <div id="loginMsg" class="msg"></div>
+    <p class="note">Votre compte et vos données restent séparés et protégés par Supabase.</p>
+  </div>
+</div>
+
+<div id="app" class="app">
+<aside class="sidebar">
+  <div class="side-brand"><img class="side-logo" src="logo-pure-vita.png" alt="PURE VITA"><div>PUREVITANUTRITION</div></div>
+  <nav class="nav">
+    <button class="active" onclick="show('dashboard',this)">📊 Tableau de bord</button>
+    <button onclick="show('produits',this)">📦 Produits</button>
+    <button onclick="show('ventes',this)">🧾 Ventes</button>
+    <button onclick="show('mouvements',this)">↕ Stock</button>
+    <button onclick="show('fournisseurs',this)">🚚 Fournisseurs</button>
+    <button onclick="show('historique',this)">🕘 Historique</button>
+    <button onclick="show('rapports',this)">🔒 Rapports</button>
+  </nav>
+  <button class="logout" onclick="logout()">Se déconnecter</button>
+</aside>
+
+<main>
+<div class="topbar"><div><h2 id="title">Tableau de bord</h2><small>PURE VITA NUTRITION</small></div><button onclick="openProduct()">+ Nouveau produit</button></div>
+
+<section id="dashboard" class="section active">
+  <div class="grid kpis">
+    <div class="kpi"><div class="muted">Total produits</div><div class="num" id="kProducts">0</div></div>
+    <div class="kpi"><div class="muted">Entrées de stock</div><div class="num" id="kEntries">0</div></div>
+    <div class="kpi"><div class="muted">Sorties de stock</div><div class="num" id="kExits">0</div></div>
+  </div>
+  <div class="grid two" style="margin-top:16px">
+    <div class="card"><h3>Activité du stock</h3><div id="chart" class="chart"></div></div>
+    <div class="card"><h3>Alertes</h3><div id="alerts"></div></div>
+  </div>
+  <div class="grid two" style="margin-top:16px">
+    <div class="card"><h3>Produits</h3><div id="dashProducts"></div></div>
+    <div class="card"><h3>Fournisseurs</h3><div id="dashSuppliers"></div></div>
+  </div>
+</section>
+
+<section id="produits" class="section">
+  <div class="card"><div class="toolbar"><input id="productSearch" placeholder="Rechercher un produit..." oninput="renderProducts()"><select id="catFilter" onchange="renderProducts()"><option value="">Toutes catégories</option></select></div><div class="table-wrap"><table><thead><tr><th>Produit</th><th>Référence</th><th>Catégorie</th><th>Stock</th><th>Prix vente</th><th>Expiration</th><th>Actions</th></tr></thead><tbody id="productsBody"></tbody></table></div></div>
+</section>
+
+<section id="ventes" class="section">
+  <div class="card"><h3>Enregistrer une vente</h3><div class="form-grid"><div class="field"><label>Produit</label><select id="saleProduct"></select></div><div class="field"><label>Quantité</label><input id="saleQty" type="number" min="1" value="1"></div></div><button onclick="addSale()">Enregistrer la vente</button><div id="saleMsg" class="note"></div></div>
+  <div class="card" style="margin-top:16px"><h3>Dernières ventes</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Prix vente</th></tr></thead><tbody id="salesBody"></tbody></table></div></div>
+</section>
+
+<section id="mouvements" class="section">
+  <div class="card"><h3>Entrée de stock</h3><div class="form-grid"><div class="field"><label>Produit</label><select id="entryProduct"></select></div><div class="field"><label>Quantité</label><input id="entryQty" type="number" min="1" value="1"></div><div class="field"><label>Prix d'achat unitaire</label><input id="entryPrice" type="number" min="0" step="0.01"></div><div class="field"><label>Fournisseur</label><select id="entrySupplier"><option value="">Aucun</option></select></div><div class="field full"><label>Note</label><input id="entryNote" placeholder="Optionnel"></div></div><button onclick="addEntry()">Ajouter au stock</button><div id="entryMsg" class="note"></div></div>
+  <div class="card" style="margin-top:16px"><h3>Mouvements récents</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Produit</th><th>Qté</th></tr></thead><tbody id="movesBody"></tbody></table></div></div>
+</section>
+
+<section id="fournisseurs" class="section">
+  <div class="card"><button onclick="openSupplier()">+ Ajouter un fournisseur</button><div id="suppliersList" style="margin-top:16px"></div></div>
+</section>
+
+<section id="historique" class="section">
+  <div class="card"><h3>Historique global</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Produit</th><th>Quantité</th><th>Détail</th></tr></thead><tbody id="historyBody"></tbody></table></div></div>
+</section>
+
+<section id="rapports" class="section">
+  <div id="reportLock" class="report-lock"><h2>🔒 Rapports confidentiels</h2><p class="muted">Chiffre d'affaires, bénéfices et marges détaillées.</p><button onclick="unlockReports()">Ouvrir avec le mot de passe</button></div>
+  <div id="reportContent" class="card hidden"><h3>Rapports financiers</h3><div class="grid three"><div class="kpi"><div class="muted">Chiffre d'affaires</div><div class="num" id="rCA">0 DH</div></div><div class="kpi"><div class="muted">Bénéfice</div><div class="num" id="rProfit">0 DH</div></div><div class="kpi"><div class="muted">Nombre de ventes</div><div class="num" id="rSales">0</div></div></div><div style="margin-top:16px" class="table-wrap"><table><thead><tr><th>Produit</th><th>CA</th><th>Bénéfice</th><th>Marge</th></tr></thead><tbody id="reportBody"></tbody></table></div></div>
+</section>
+</main>
+</div>
+
+<div id="modal" class="modal"><div class="modal-box" id="modalBox"></div></div>
+
+<script>
+const SUPABASE_URL='https://uhklwxoidufeozbjkjwz.supabase.co';
+const SUPABASE_KEY='sb_publishable_Q7oY5TVHmBkpX8YAQRN4nQ_8ITk3e5r';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let products=[], suppliers=[], moves=[], sales=[];
+
+const $=id=>document.getElementById(id);
+function money(n){return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' DH'}
+function date(d){return d?new Date(d).toLocaleDateString('fr-FR'):'—'}
+function msg(id,t){$(id).textContent=t}
+
+async function login(){
+  msg('loginMsg','Connexion…');
+  const {error}=await db.auth.signInWithPassword({email:$('email').value,password:$('password').value});
+  if(error) msg('loginMsg',error.message); else await boot();
+}
+async function logout(){await db.auth.signOut(); location.reload()}
+async function boot(){
+  $('login').classList.add('hidden'); $('app').style.display='block'; await loadAll(); renderAll();
+}
+async function loadAll(){
+  const {data:p}=await db.from('produits').select('*').order('nom'); products=p||[];
+  const {data:f}=await db.from('fournisseurs').select('*').order('nom'); suppliers=f||[];
+  const {data:m}=await db.from('mouvements_stock').select('*').order('created_at',{ascending:false}).limit(100); moves=m||[];
+  const {data:v}=await db.from('ventes').select('*').order('created_at',{ascending:false}).limit(100); sales=v||[];
+}
+function show(id,btn){
+  document.querySelectorAll('.section').forEach(x=>x.classList.remove('active')); $(id).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); if(btn)btn.classList.add('active');
+  const titles={dashboard:'Tableau de bord',produits:'Produits',ventes:'Ventes',mouvements:'Stock',fournisseurs:'Fournisseurs',historique:'Historique',rapports:'Rapports confidentiels'};
+  $('title').textContent=titles[id];
+  renderAll();
+}
+function renderAll(){renderDashboard();renderProducts();fillSelects();renderSales();renderMoves();renderSuppliers();renderHistory();}
+
+function renderDashboard(){
+  $('kProducts').textContent=products.length;
+  $('kEntries').textContent=moves.filter(x=>x.type==='entree').reduce((a,x)=>a+Number(x.quantite),0);
+  $('kExits').textContent=moves.filter(x=>x.type==='sortie').reduce((a,x)=>a+Number(x.quantite),0);
+  const now=Date.now(), alert=[];
+  products.forEach(p=>{
+    if(p.stock<=p.stock_minimum) alert.push(`<div class="alert danger">⚠ Stock faible : <b>${esc(p.nom)}</b> (${p.stock})</div>`);
+    if(p.date_expiration){const d=(new Date(p.date_expiration)-new Date())/86400000;if(d<=30)alert.push(`<div class="alert">⏳ Expiration proche : <b>${esc(p.nom)}</b> — ${date(p.date_expiration)}</div>`)}
+  });
+  $('alerts').innerHTML=alert.join('')||'<div class="muted">Aucune alerte.</div>';
+  const last=products.slice(0,6); $('dashProducts').innerHTML=last.map(p=>`<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)"><span>${esc(p.nom)}</span><b>${p.stock}</b></div>`).join('')||'<span class="muted">Aucun produit.</span>';
+  $('dashSuppliers').innerHTML=suppliers.slice(0,6).map(s=>`<div style="padding:9px 0;border-bottom:1px solid var(--border)">${esc(s.nom)}<div class="muted">${esc(s.telephone||'')}</div></div>`).join('')||'<span class="muted">Aucun fournisseur.</span>';
+  const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-i);const key=d.toISOString().slice(0,10);const n=moves.filter(m=>m.created_at.slice(0,10)===key).reduce((a,x)=>a+Number(x.quantite),0);days.push({d:d.toLocaleDateString('fr-FR',{weekday:'short'}),n})}
+  const max=Math.max(1,...days.map(x=>x.n));$('chart').innerHTML=days.map(x=>`<div class="col" style="height:${Math.max(12,x.n/max*150)}px"><span>${x.d}</span></div>`).join('');
+}
+function renderProducts(){
+  const q=($('productSearch')?.value||'').toLowerCase(),cat=$('catFilter')?.value||'';
+  if($('catFilter')){const cats=[...new Set(products.map(p=>p.categorie).filter(Boolean))];$('catFilter').innerHTML='<option value="">Toutes catégories</option>'+cats.map(c=>`<option ${c===cat?'selected':''}>${esc(c)}</option>`).join('')}
+  const arr=products.filter(p=>(!q||p.nom.toLowerCase().includes(q)||(p.reference||'').toLowerCase().includes(q))&&(!cat||p.categorie===cat));
+  $('productsBody').innerHTML=arr.map(p=>`<tr><td><b>${esc(p.nom)}</b></td><td>${esc(p.reference||'—')}</td><td>${esc(p.categorie||'—')}</td><td><span class="pill">${p.stock}</span></td><td>${money(p.prix_vente)}</td><td>${date(p.date_expiration)}</td><td><div class="actions"><button onclick="openStock(${p.id})">+ Stock</button><button class="secondary" onclick="sellQuick(${p.id})">Vendre</button><button class="secondary" onclick="openProduct(${p.id})">Modifier</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">Aucun produit.</td></tr>';
+}
+function fillSelects(){
+  const opts=products.map(p=>`<option value="${p.id}">${esc(p.nom)} — stock ${p.stock}</option>`).join('');
+  ['saleProduct','entryProduct'].forEach(id=>{if($(id))$(id).innerHTML=opts||'<option>Aucun produit</option>'});
+  if($('entrySupplier'))$('entrySupplier').innerHTML='<option value="">Aucun</option>'+suppliers.map(s=>`<option value="${s.id}">${esc(s.nom)}</option>`).join('');
+}
+function renderSales(){$('salesBody').innerHTML=sales.slice(0,30).map(s=>{const p=products.find(x=>x.id===s.produit_id);return `<tr><td>${date(s.created_at)}</td><td>${esc(p?.nom||'Produit supprimé')}</td><td>${s.quantite}</td><td>${money(s.prix_vente_unitaire)}</td></tr>`}).join('')||'<tr><td colspan="4" class="muted">Aucune vente.</td></tr>'}
+function renderMoves(){$('movesBody').innerHTML=moves.slice(0,30).map(m=>{const p=products.find(x=>x.id===m.produit_id);return `<tr><td>${date(m.created_at)}</td><td>${m.type==='entree'?'Entrée':'Sortie'}</td><td>${esc(p?.nom||'Produit supprimé')}</td><td>${m.quantite}</td></tr>`}).join('')||'<tr><td colspan="4" class="muted">Aucun mouvement.</td></tr>'}
+function renderSuppliers(){$('suppliersList').innerHTML=suppliers.map(s=>`<div class="card" style="margin:10px 0"><b>${esc(s.nom)}</b><div class="muted">${esc(s.telephone||'')} ${esc(s.email||'')}</div><div class="actions" style="margin-top:8px"><button class="secondary" onclick="openSupplier(${s.id})">Modifier</button></div></div>`).join('')||'<div class="muted">Aucun fournisseur.</div>'}
+function renderHistory(){const all=[...moves.map(m=>({...m,_type:m.type==='entree'?'Entrée stock':'Sortie stock'})),...sales.map(s=>({...s,_type:'Vente'}))].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,60);$('historyBody').innerHTML=all.map(x=>{const p=products.find(z=>z.id===x.produit_id);return `<tr><td>${date(x.created_at)}</td><td>${x._type}</td><td>${esc(p?.nom||'Produit supprimé')}</td><td>${x.quantite}</td><td>${x.note?esc(x.note):'—'}</td></tr>`}).join('')||'<tr><td colspan="5" class="muted">Aucun historique.</td></tr>'}
+
+function openProduct(id=null){
+ const p=id?products.find(x=>x.id===id):null;
+ $('modalBox').innerHTML=`<div class="modal-head"><h3>${p?'Modifier':'Nouveau'} produit</h3><button class="secondary" onclick="closeModal()">✕</button></div>
+ <div class="form-grid"><div class="field"><label>Nom</label><input id="pNom" value="${esc(p?.nom||'')}"></div><div class="field"><label>Référence</label><input id="pRef" value="${esc(p?.reference||'')}"></div><div class="field"><label>Catégorie</label><input id="pCat" value="${esc(p?.categorie||'')}"></div><div class="field"><label>Stock minimum</label><input id="pMin" type="number" min="0" value="${p?.stock_minimum??5}"></div><div class="field"><label>Prix d'achat</label><input id="pBuy" type="number" min="0" step="0.01" value="${p?.prix_achat??0}"></div><div class="field"><label>Prix de vente</label><input id="pSell" type="number" min="0" step="0.01" value="${p?.prix_vente??0}"></div><div class="field"><label>Date d'expiration</label><input id="pExp" type="date" value="${p?.date_expiration||''}"></div><div class="field"><label>Fournisseur</label><select id="pSup"><option value="">Aucun</option>${suppliers.map(s=>`<option value="${s.id}" ${p?.fournisseur_id===s.id?'selected':''}>${esc(s.nom)}</option>`).join('')}</select></div></div>
+ <div class="actions" style="margin-top:14px"><button onclick="saveProduct(${id||0})">Enregistrer</button>${p?`<button class="danger" onclick="deleteProduct(${p.id})">Supprimer</button>`:''}</div>`;
+ $('modal').classList.add('show');
+}
+async function saveProduct(id){
+ const obj={nom:$('pNom').value.trim(),reference:$('pRef').value.trim(),categorie:$('pCat').value.trim(),stock_minimum:Number($('pMin').value||0),prix_achat:Number($('pBuy').value||0),prix_vente:Number($('pSell').value||0),date_expiration:$('pExp').value||null,fournisseur_id:$('pSup').value?Number($('pSup').value):null};
+ if(!obj.nom)return alert('Nom du produit obligatoire.');
+ let res=id?await db.from('produits').update(obj).eq('id',id):await db.from('produits').insert(obj);
+ if(res.error)return alert(res.error.message);closeModal();await loadAll();renderAll();
+}
+async function deleteProduct(id){if(!confirm('Supprimer ce produit ?'))return;const r=await db.from('produits').delete().eq('id',id);if(r.error)alert(r.error.message);else{closeModal();await loadAll();renderAll()}}
+function openStock(id){$('entryProduct').value=id;show('mouvements',document.querySelectorAll('.nav button')[3])}
+function sellQuick(id){$('saleProduct').value=id;show('ventes',document.querySelectorAll('.nav button')[2])}
+async function addEntry(){
+ const id=Number($('entryProduct').value),qty=Number($('entryQty').value),p=products.find(x=>x.id===id);if(!p||qty<1)return;
+ const user=(await db.auth.getUser()).data.user;
+ const m={produit_id:id,type:'entree',quantite:qty,prix_unitaire:Number($('entryPrice').value||p.prix_achat),fournisseur_id:$('entrySupplier').value?Number($('entrySupplier').value):null,note:$('entryNote').value.trim(),user_id:user.id};
+ let r=await db.from('mouvements_stock').insert(m);if(r.error){msg('entryMsg',r.error.message);return}
+ r=await db.from('produits').update({stock:p.stock+qty,prix_achat:m.prix_unitaire,updated_at:new Date().toISOString()}).eq('id',id);
+ if(r.error){msg('entryMsg',r.error.message);return}msg('entryMsg','Stock ajouté avec succès.');await loadAll();renderAll();
+}
+async function addSale(){
+ const id=Number($('saleProduct').value),qty=Number($('saleQty').value),p=products.find(x=>x.id===id);if(!p||qty<1)return;
+ if(qty>p.stock){msg('saleMsg','Stock insuffisant.');return}
+ const user=(await db.auth.getUser()).data.user;
+ let r=await db.from('ventes').insert({produit_id:id,quantite:qty,prix_vente_unitaire:p.prix_vente,prix_achat_unitaire:p.prix_achat,user_id:user.id});
+ if(r.error){msg('saleMsg',r.error.message);return}
+ r=await db.from('mouvements_stock').insert({produit_id:id,type:'sortie',quantite:qty,prix_unitaire:p.prix_vente,note:'Vente',user_id:user.id});
+ if(r.error){msg('saleMsg',r.error.message);return}
+ r=await db.from('produits').update({stock:p.stock-qty,updated_at:new Date().toISOString()}).eq('id',id);
+ if(r.error){msg('saleMsg',r.error.message);return}msg('saleMsg','Vente enregistrée.');await loadAll();renderAll();
+}
+function openSupplier(id=null){
+ const s=id?suppliers.find(x=>x.id===id):null;
+ $('modalBox').innerHTML=`<div class="modal-head"><h3>${s?'Modifier':'Nouveau'} fournisseur</h3><button class="secondary" onclick="closeModal()">✕</button></div><div class="form-grid"><div class="field"><label>Nom</label><input id="sNom" value="${esc(s?.nom||'')}"></div><div class="field"><label>Téléphone</label><input id="sTel" value="${esc(s?.telephone||'')}"></div><div class="field"><label>Email</label><input id="sEmail" value="${esc(s?.email||'')}"></div><div class="field"><label>Adresse</label><input id="sAdr" value="${esc(s?.adresse||'')}"></div></div><div class="actions" style="margin-top:14px"><button onclick="saveSupplier(${id||0})">Enregistrer</button></div>`;
+ $('modal').classList.add('show');
+}
+async function saveSupplier(id){const obj={nom:$('sNom').value.trim(),telephone:$('sTel').value.trim(),email:$('sEmail').value.trim(),adresse:$('sAdr').value.trim()};if(!obj.nom)return alert('Nom obligatoire.');const r=id?await db.from('fournisseurs').update(obj).eq('id',id):await db.from('fournisseurs').insert(obj);if(r.error)alert(r.error.message);else{closeModal();await loadAll();renderAll()}}
+function closeModal(){$('modal').classList.remove('show')}
+async function unlockReports(){const pass=prompt('Mot de passe administrateur :');if(!pass)return;const u=(await db.auth.getUser()).data.user;if(!u)return;if(pass===($('password').value||'admin')){renderReports();$('reportLock').classList.add('hidden');$('reportContent').classList.remove('hidden')}else alert('Mot de passe incorrect.')}
+function renderReports(){const ca=sales.reduce((a,s)=>a+Number(s.chiffre_affaires||0),0),pr=sales.reduce((a,s)=>a+Number(s.benefice||0),0);$('rCA').textContent=money(ca);$('rProfit').textContent=money(pr);$('rSales').textContent=sales.length;const map={};sales.forEach(s=>{const p=products.find(x=>x.id===s.produit_id),k=s.produit_id;if(!map[k])map[k]={name:p?.nom||'Produit',ca:0,profit:0};map[k].ca+=Number(s.chiffre_affaires||0);map[k].profit+=Number(s.benefice||0)});$('reportBody').innerHTML=Object.values(map).map(x=>`<tr><td>${esc(x.name)}</td><td>${money(x.ca)}</td><td>${money(x.profit)}</td><td>${x.ca?((x.profit/x.ca)*100).toFixed(1):0}%</td></tr>`).join('')||'<tr><td colspan="4">Aucune vente.</td></tr>'}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+db.auth.getSession().then(({data})=>data.session?boot():null);
+</script>
+</body>
+</html>
