@@ -311,3 +311,10 @@ db.auth.onAuthStateChange(() => {
 });
 
 boot();
+document.querySelectorAll("#nav button[data-p]").forEach(button => {
+  button.addEventListener("click", () => {
+    page(button.dataset.p);
+  });
+});
+
+document.getElementById("logout")?.addEventListener("click", logout);
