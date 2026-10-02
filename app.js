@@ -80,23 +80,129 @@ window.page = async function(section) {
     return;
   }
 
-  if (section === "products") {
-    await afficherProduits();
+  if (section === "pos") {
+  const { data: produits = [], error } =
+    await db.from("produits").select("*").order("nom");
+
+  if (error) {
+    content.innerHTML = `<div class="panel">Erreur : ${error.message}</div>`;
     return;
   }
+
+  content.innerHTML = `
+    <h1>Caisse / ventes</h1>
+
+    <div class="panel">
+      <h2>Nouvelle vente</h2>
+
+      <select id="venteProduit">
+        <option value="">Sélectionner un produit</option>
+        ${produits.map(p => `
+          <option value="${p.id}">
+            ${p.nom} — Stock: ${p.stock} — ${Number(p.prix_vente).toFixed(2)} DH
+          </option>
+        `).join("")}
+      </select>
+
+      <input
+        id="venteQuantite"
+        type="number"
+        min="1"
+        value="1"
+        placeholder="Quantité"
+      >
+
+      <input
+        id="ventePrix"
+        type="number"
+        step="0.01"
+        placeholder="Prix de vente"
+      >
+
+      <select id="ventePaiement">
+        <option value="especes">Espèces</option>
+        <option value="carte">Carte</option>
+        <option value="virement">Virement</option>
+      </select>
+
+      <button onclick="enregistrerVente()">
+        Enregistrer la vente
+      </button>
+    </div>
+  `;
+
+  document.getElementById("venteProduit")?.addEventListener("change", function() {
+    const produit = produits.find(p => String(p.id) === this.value);
+
+    if (produit) {
+      document.getElementById("ventePrix").value =
+        Number(produit.prix_vente).toFixed(2);
+    }
+  });
+
+  return;
+}
 
   if (section === "pos") {
-    content.innerHTML = `
-      <h1>Caisse / ventes</h1>
-      <div class="panel">
-        <h2>Nouvelle vente</h2>
-        <p>La caisse sera disponible ici.</p>
-      </div>
-    `;
+  const produitId = document.getElementById("venteProduit")?.value;
+  const quantite = Number(document.getElementById("venteQuantite")?.value || 0);
+  const prix = Number(document.getElementById("ventePrix")?.value || 0);
+
+  if (!produitId || quantite <= 0 || prix < 0) {
+    alert("Veuillez remplir correctement la vente.");
     return;
   }
 
-  if (section === "clients") {
+  const { data: produit, error: produitError } =
+    await db.from("produits")
+      .select("*")
+      .eq("id", produitId)
+      .single();
+
+  if (produitError || !produit) {
+    alert("Produit introuvable.");
+    return;
+  }
+
+  if (quantite > Number(produit.stock)) {
+    alert("Stock insuffisant.");
+    return;
+  }
+
+  const { error: venteError } = await db.from("ventes").insert({
+    produit_id: produit.id,
+    quantite: quantite,
+    prix_vente_unitaire: prix,
+    prix_achat_unitaire: Number(produit.prix_achat || 0)
+  });
+
+  if (venteError) {
+    alert("Erreur lors de la vente : " + venteError.message);
+    return;
+  }
+
+  const nouveauStock = Number(produit.stock) - quantite;
+
+  const { error: stockError } = await db.from("produits")
+    .update({ stock: nouveauStock })
+    .eq("id", produit.id);
+
+  if (stockError) {
+    alert("Vente enregistrée, mais erreur de stock : " + stockError.message);
+    return;
+  }
+
+  await db.from("mouvements_stock").insert({
+    produit_id: produit.id,
+    type: "sortie",
+    quantite: quantite,
+    prix_unitaire: prix,
+    note: "Vente"
+  });
+
+  alert("Vente enregistrée avec succès.");
+  page("pos");
+};
     content.innerHTML = `
       <h1>Clients</h1>
       <div class="panel">
@@ -311,10 +417,16 @@ db.auth.onAuthStateChange(() => {
 });
 
 boot();
-document.querySelectorAll("#nav button[data-p]").forEach(button => {
-  button.addEventListener("click", () => {
-    page(button.dataset.p);
-  });
-});
+document.addEventListener("click", function(e) {
+  const bouton = e.target.closest("#nav button[data-p]");
 
-document.getElementById("logout")?.addEventListener("click", logout);// navigation
+  if (bouton) {
+    e.preventDefault();
+    window.page(bouton.dataset.p);
+  }
+
+  if (e.target.closest("#logout")) {
+    e.preventDefault();
+    window.logout();
+  }
+});
